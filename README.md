@@ -1,4 +1,4 @@
-CyanogenMod File Manager
+CyanogenMod File Manager port for ics
 ========================
 
 A file manager for AOSP, focused on rooted devices and specially designed
