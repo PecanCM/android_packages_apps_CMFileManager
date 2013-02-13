@@ -25,6 +25,9 @@ import android.os.storage.StorageVolume;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.View;
+import android.view.animation.AccelerateInterpolator;
+import android.view.animation.AlphaAnimation;
+import android.view.animation.Animation;
 import android.widget.AdapterView;
 import android.widget.ListAdapter;
 import android.widget.ListView;
@@ -60,9 +63,11 @@ import com.cyanogenmod.filemanager.ui.widgets.FlingerListView.OnItemFlingerRespo
 import com.cyanogenmod.filemanager.util.CommandHelper;
 import com.cyanogenmod.filemanager.util.DialogHelper;
 import com.cyanogenmod.filemanager.util.ExceptionUtil;
+import com.cyanogenmod.filemanager.util.ExceptionUtil.OnRelaunchCommandResult;
 import com.cyanogenmod.filemanager.util.FileHelper;
 import com.cyanogenmod.filemanager.util.StorageHelper;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -117,6 +122,18 @@ public class NavigationView extends RelativeLayout implements
          * @param item The item choose
          */
         void onFilePicked(FileSystemObject item);
+    }
+
+    /**
+     * An interface to communicate a change of the current directory
+     */
+    public interface OnDirectoryChangedListener {
+        /**
+         * Method invoked when the current directory changes
+         *
+         * @param item The newly active directory
+         */
+        void onDirectoryChanged(FileSystemObject item);
     }
 
     /**
@@ -201,6 +218,7 @@ public class NavigationView extends RelativeLayout implements
     private OnNavigationSelectionChangedListener mOnNavigationSelectionChangedListener;
     private OnNavigationRequestMenuListener mOnNavigationRequestMenuListener;
     private OnFilePickedListener mOnFilePickedListener;
+    private OnDirectoryChangedListener mOnDirectoryChangedListener;
 
     private boolean mChRooted;
 
@@ -472,6 +490,16 @@ public class NavigationView extends RelativeLayout implements
      */
     public void setOnFilePickedListener(OnFilePickedListener onFilePickedListener) {
         this.mOnFilePickedListener = onFilePickedListener;
+    }
+
+    /**
+     * Method that sets the listener for directory changes
+     *
+     * @param onDirectoryChangedListener The listener reference
+     */
+    public void setOnDirectoryChangedListener(
+            OnDirectoryChangedListener onDirectoryChangedListener) {
+        this.mOnDirectoryChangedListener = onDirectoryChangedListener;
     }
 
     /**
@@ -825,30 +853,52 @@ public class NavigationView extends RelativeLayout implements
                                     }
                                 }
 
-                                //Capture exception
+                                //Capture exception (attach task, and use listener to do the anim)
                                 ExceptionUtil.attachAsyncTask(
                                     ex,
                                     new AsyncTask<Object, Integer, Boolean>() {
+                                        private List<FileSystemObject> mTaskFiles = null;
                                         @Override
-                                        @SuppressWarnings("unchecked")
+                                        @SuppressWarnings({
+                                                "unchecked", "unqualified-field-access"
+                                        })
                                         protected Boolean doInBackground(Object... taskParams) {
-                                            final List<FileSystemObject> files =
-                                                    (List<FileSystemObject>)taskParams[0];
-                                            NavigationView.this.mAdapterView.post(
-                                                    new Runnable() {
-                                                        @Override
-                                                        public void run() {
-                                                            onPostExecuteTask(
-                                                                    files, addToHistory,
-                                                                    isNewHistory, hasChanged,
-                                                                    searchInfo, fNewDir, scrollTo);
-                                                        }
-                                                    });
+                                            mTaskFiles = (List<FileSystemObject>)taskParams[0];
                                             return Boolean.TRUE;
                                         }
 
+                                        @Override
+                                        @SuppressWarnings("unqualified-field-access")
+                                        protected void onPostExecute(Boolean result) {
+                                            if (!result.booleanValue()){
+                                                return;
+                                            }
+                                            onPostExecuteTask(
+                                                    mTaskFiles, addToHistory,
+                                                    isNewHistory, hasChanged,
+                                                    searchInfo, fNewDir, scrollTo);
+                                        }
                                     });
-                                ExceptionUtil.translateException(getContext(), ex);
+                                final OnRelaunchCommandResult exListener =
+                                        new OnRelaunchCommandResult() {
+                                    @Override
+                                    public void onSuccess() {
+                                        // Do animation
+                                        fadeEfect(false);
+                                    }
+                                    @Override
+                                    public void onFailed(Throwable cause) {
+                                        // Do animation
+                                        fadeEfect(false);
+                                    }
+                                    @Override
+                                    public void onCancelled() {
+                                        // Do animation
+                                        fadeEfect(false);
+                                    }
+                                };
+                                ExceptionUtil.translateException(
+                                        getContext(), ex, false, true, exListener);
                             }
                             return null;
                         }
@@ -857,10 +907,47 @@ public class NavigationView extends RelativeLayout implements
                          * {@inheritDoc}
                          */
                         @Override
+                        protected void onPreExecute() {
+                            // Do animation
+                            fadeEfect(true);
+                        }
+
+
+
+                        /**
+                         * {@inheritDoc}
+                         */
+                        @Override
                         protected void onPostExecute(List<FileSystemObject> files) {
-                            onPostExecuteTask(
-                                    files, addToHistory, isNewHistory,
-                                    hasChanged, searchInfo, fNewDir, scrollTo);
+                            if (files != null) {
+                                onPostExecuteTask(
+                                        files, addToHistory, isNewHistory,
+                                        hasChanged, searchInfo, fNewDir, scrollTo);
+
+                                // Do animation
+                                fadeEfect(false);
+                            }
+                        }
+
+                        /**
+                         * Method that performs a fade animation.
+                         *
+                         * @param out Fade out (true); Fade in (false)
+                         */
+                        void fadeEfect(final boolean out) {
+                            Activity activity = (Activity)getContext();
+                            activity.runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    Animation fadeAnim = out ?
+                                            new AlphaAnimation(1, 0) :
+                                            new AlphaAnimation(0, 1);
+                                    fadeAnim.setDuration(50L);
+                                    fadeAnim.setFillAfter(true);
+                                    fadeAnim.setInterpolator(new AccelerateInterpolator());
+                                    NavigationView.this.startAnimation(fadeAnim);
+                                }
+                            });
                         }
                    };
             task.execute(fNewDir);
@@ -928,7 +1015,10 @@ public class NavigationView extends RelativeLayout implements
 
             //The current directory is now the "newDir"
             this.mCurrentDir = newDir;
-
+            if (this.mOnDirectoryChangedListener != null) {
+                FileSystemObject dir = FileHelper.createFileSystemObject(new File(newDir));
+                this.mOnDirectoryChangedListener.onDirectoryChanged(dir);
+            }
         } finally {
             //If calling activity is search, then save the search history
             if (searchInfo != null) {
@@ -1021,23 +1111,30 @@ public class NavigationView extends RelativeLayout implements
             FileSystemObject fso = ((FileSystemObjectAdapter)parent.getAdapter()).getItem(position);
             if (fso instanceof ParentDirectory) {
                 changeCurrentDir(fso.getParent(), true, false, false, null, null);
+                return;
             } else if (fso instanceof Directory) {
                 changeCurrentDir(fso.getFullPath(), true, false, false, null, null);
+                return;
             } else if (fso instanceof Symlink) {
                 Symlink symlink = (Symlink)fso;
                 if (symlink.getLinkRef() != null && symlink.getLinkRef() instanceof Directory) {
                     changeCurrentDir(
                             symlink.getLinkRef().getFullPath(), true, false, false, null, null);
+                    return;
                 }
+
+                // Open the link ref
+                fso = symlink.getLinkRef();
+            }
+
+            // Open the file (edit or pick)
+            if (this.mNavigationMode.compareTo(NAVIGATION_MODE.BROWSABLE) == 0) {
+                // Open the file with the preferred registered app
+                IntentsActionPolicy.openFileSystemObject(getContext(), fso, false, null, null);
             } else {
-                if (this.mNavigationMode.compareTo(NAVIGATION_MODE.BROWSABLE) == 0) {
-                    // Open the file with the preferred registered app
-                    IntentsActionPolicy.openFileSystemObject(getContext(), fso, false, null, null);
-                } else {
-                    // Request a file pick selection
-                    if (this.mOnFilePickedListener != null) {
-                        this.mOnFilePickedListener.onFilePicked(fso);
-                    }
+                // Request a file pick selection
+                if (this.mOnFilePickedListener != null) {
+                    this.mOnFilePickedListener.onFilePicked(fso);
                 }
             }
         } catch (Throwable ex) {
@@ -1049,26 +1146,30 @@ public class NavigationView extends RelativeLayout implements
      * {@inheritDoc}
      */
     @Override
-    public void onRequestRefresh(Object o) {
+    public void onRequestRefresh(Object o, boolean clearSelection) {
         if (o instanceof FileSystemObject) {
             refresh((FileSystemObject)o);
         } else if (o == null) {
             refresh();
         }
-        onDeselectAll();
+        if (clearSelection) {
+            onDeselectAll();
+        }
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public void onRequestRemove(Object o) {
+    public void onRequestRemove(Object o, boolean clearSelection) {
         if (o != null && o instanceof FileSystemObject) {
             removeItem((FileSystemObject)o);
         } else {
-            onRequestRefresh(null);
+            onRequestRefresh(null, clearSelection);
         }
-        onDeselectAll();
+        if (clearSelection) {
+            onDeselectAll();
+        }
     }
 
     /**

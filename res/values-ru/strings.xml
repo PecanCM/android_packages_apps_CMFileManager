@@ -15,7 +15,7 @@
  -->
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
 
-  <string name="app_name">File Manager</string>
+  <string name="app_name">Файловый менеджер</string>
   <string name="app_description">Файловый менеджер CyanogenMod</string>
 
   <string name="device_blockdevice">Блочное устройство</string>
@@ -49,7 +49,7 @@
   <string name="msgs_cant_create_console">Не удаётся получить необходимые привилегии</string>
   <string name="msgs_privileged_console_alloc_failed">Невозможно запустить в Root-режиме. Переключение в безопасный режим</string>
   <string name="msgs_settings_save_failure">Настройка не может быть применена или сохранена</string>
-  <string name="msgs_settings_invalid_initial_directory">Начальная папка "<xliff:g id="initial_dir">%1$s</xliff:g>" недоступна. Переход в корневую папку</string>
+  <string name="msgs_settings_invalid_initial_directory">Начальная папка \"<xliff:g id="initial_dir">%1$s</xliff:g>\" недоступна. Переход в корневую папку</string>
 
   <string name="msgs_success">Операция прошла успешно</string>
   <string name="msgs_unknown">Были обнаружены ошибки. Операция завершилась неудачно</string>
@@ -64,7 +64,7 @@
   <string name="msgs_read_only_filesystem">Файловая система доступна только для чтения. Попробуйте смонтировать файловую систему для чтения/записи</string>
   <string name="msgs_illegal_argument">Недопустимый аргумент. Вызов не удался</string>
   <string name="msgs_unresolved_inconsistencies">Операция не допускается, поскольку это создаст несоответствия</string>
-  <string name="msgs_operation_not_allowed_in_current_directory">Операция не допускается в текущей папке</string>
+  <string name="msgs_operation_not_allowed_in_current_directory">Операция не допускается в текущей папке. \n\nПапка назначения не может быть вложенной папкой источника или самим источником</string>
 
   <string name="msgs_push_again_to_exit">Нажмите ещё раз для выхода</string>
 
@@ -139,7 +139,9 @@
   <string name="fso_properties_dialog_link">Ссылка:</string>
   <string name="fso_properties_dialog_size">Размер:</string>
   <string name="fso_properties_dialog_contains">Содержит:</string>
-  <string name="fso_properties_dialog_date">Посл. доступ:</string>
+  <string name="fso_properties_dialog_last_accessed_date">Доступ:</string>
+  <string name="fso_properties_dialog_last_modified_date">Модифиц.:</string>
+  <string name="fso_properties_dialog_last_changed_date">Изменено:</string>
   <string name="fso_properties_dialog_owner">Владелец:</string>
   <string name="fso_properties_dialog_group">Группа:</string>
   <string name="fso_properties_dialog_others">Другое:</string>
@@ -153,6 +155,14 @@
     <item quantity="one">1 файл</item>
     <item quantity="other"><xliff:g id="files">%1$d</xliff:g> файл(-ов,-а)</item>
   </plurals>
+
+  <string name="fso_properties_dialog_include_in_media_scan">Исключить поиск медиа:</string>
+  <string name="fso_failed_to_allow_media_scan">Не удалось произвести поиск медиа файлов</string>
+  <string name="fso_failed_to_prevent_media_scan">Не удалось отменить поиск медиа файлов</string>
+  <string name="fso_delete_nomedia_dir_title">Удалить каталог .nomedia</string>
+  <string name="fso_delete_nomedia_dir_body">Этот каталог содержит .nomedia.\n\nВы действительно хотите удалить его со всем содержимым?</string>
+  <string name="fso_delete_nomedia_non_empty_title">Удалить файл .nomedia</string>
+  <string name="fso_delete_nomedia_non_empty_body">Этот каталог содержит файл .nomedia.\n\nВы действительно хотите удалить его?</string>
 
   <string name="history">История</string>
   <string name="msgs_history_empty">История пуста</string>
@@ -225,8 +235,8 @@
   <string name="actions_menu_deselect_all">Снять выбор</string>
   <string name="actions_menu_select">Выбор</string>
   <string name="actions_menu_deselect">Снять выбор</string>
-  <string name="actions_menu_paste_selection">Вставить выбранное</string>
-  <string name="actions_menu_move_selection">Переместить выбранное</string>
+  <string name="actions_menu_paste_selection">Вставить выбранное сюда</string>
+  <string name="actions_menu_move_selection">Переместить выбранное сюда</string>
   <string name="actions_menu_delete_selection">Удалить выбранное</string>
   <string name="actions_menu_compress_selection">Сжать выбранное</string>
   <string name="actions_menu_create_link">Создать ссылку</string>
@@ -234,6 +244,7 @@
   <string name="actions_menu_open_with">Открыть в\u2026</string>
   <string name="actions_menu_execute">Выполнить</string>
   <string name="actions_menu_send">Отправить</string>
+  <string name="actions_menu_send_selection">Отправить выбранное</string>
   <string name="actions_menu_compress">Сжать</string>
   <string name="actions_menu_extract">Извлечь</string>
   <string name="actions_menu_delete">Удалить</string>
@@ -312,7 +323,7 @@
   <string name="pref_disk_usage_warning_level">Предупреждения исп. памяти</string>
   <string name="pref_disk_usage_warning_level_summary" formatted="false">Показывать разноцветные индикации дискового пространства, когда они достигают <xliff:g id="level">%1$s</xliff:g> процентов свободного места</string>
   <string name="pref_compute_folder_statistics">Расчёт статистики по папкам</string>
-  <string name="pref_compute_folder_statistics_on">Внимание! Расчёт статистики по папкам займёт длительное время и потребуется значительное количество системных ресурсов</string>
+  <string name="pref_compute_folder_statistics_on">Внимание! Расчёт статистики по папкам займёт длительное время и потребует значительное количество системных ресурсов</string>
   <string name="pref_use_flinger">Использовать жесты</string>
   <string name="pref_use_flinger_summary">Используйте жест справа налево для удаления файлов или папок</string>
   <string name="pref_general_advanced_settings_category">Расширенные настройки</string>
